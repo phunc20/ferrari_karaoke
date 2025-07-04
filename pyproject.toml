@@ -1,0 +1,17 @@
+[project]
+name = "ferrari-karaoke"
+version = "0.1.0"
+description = "First the project is created to serve crawling purposes"
+readme = "README.md"
+authors = [
+    { name = "phunc20", email = "phunc20@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+ferrari-karaoke = "ferrari_karaoke:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
