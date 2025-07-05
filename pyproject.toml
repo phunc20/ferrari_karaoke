@@ -7,7 +7,11 @@ authors = [
     { name = "phunc20", email = "phunc20@gmail.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "httpx>=0.28.1",
+    "nodriver>=0.46.1",
+    "pandas>=2.3.0",
+]
 
 [project.scripts]
 ferrari-karaoke = "ferrari_karaoke:main"
@@ -15,3 +19,10 @@ ferrari-karaoke = "ferrari_karaoke:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ipdb>=0.13.13",
+    "pytest>=8.4.1",
+    "ruff>=0.12.2",
+]
