@@ -1,4 +1,5 @@
 import nodriver as uc
+import atexit
 import httpx
 import json
 import pandas as pd
@@ -24,7 +25,6 @@ EXAMPLE_ENTRY = {
     'company': '弘音',
     'songDate': '114-05',
 }
-USED_COLUMNS = ["code", "name", "singer", "lang"]
 #EXAMPLE_ENTRY = {
 #    'seq': 2908,
 #    'id': 170479,
@@ -42,20 +42,38 @@ USED_COLUMNS = ["code", "name", "singer", "lang"]
 #    'len': 6,
 #    'artistIMG': 'https://i.kfs.io/artist/global/21452,0v1/fit/300x300.jpg',
 #}
+USED_COLUMNS = ["code", "name", "singer", "lang"]
 LANGS = ("台", "國", "日", "客", "粵", "英", "山", "兒")
 
 PROJECT_ROOT_DIR = Path(__file__).parent.parent.parent
 DATA_DIR = PROJECT_ROOT_DIR/"data"
 ASSETS_DIR = PROJECT_ROOT_DIR/"assets"
+
 SLEEP_MIN_SEC = 2
 SLEEP_MAX_SEC = 5
 NUM_GETS_BEFORE_SLEEP_AGAIN = random.randint(10, 20)
+
+logger = logging.getLogger("hongyin")
+#logger = logging.getLogger(__name__)
+print(f'{logger.name = }')
+
+
+def setup_logging():
+    config_file = Path(__file__).parent/"config/logging/queued-stdout-stderr-file.json"
+    with open(config_file) as f:
+        config = json.load(f)
+
+    logging.config.dictConfig(config)
+    queue_handler = logging.getHandlerByName("queue_handler")
+    if queue_handler is not None:
+        queue_handler.listener.start()
+        atexit.register(queue_handler.listener.stop)
+
 
 async def crawl_songs(keep_csv: bool = True):
     """
     Works by simulate infinite-scrolling triggered request
     """
-    #ipdb.set_trace()
     if keep_csv:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -63,13 +81,10 @@ async def crawl_songs(keep_csv: bool = True):
         col: pd.Series(dtype="str") for col in USED_COLUMNS
     })
 
-
-
     browser = await uc.start(headless=True)
     cookies_dict = {c.name: c.value for c in await browser.cookies.get_all()}
     client = httpx.Client(cookies=cookies_dict)
 
-    LANGS = ("台", "國", "日", "客", "粵", "英", "山", "兒")
     for lang in LANGS:
         print(f'{lang = }')
         min_id = 0
@@ -81,10 +96,15 @@ async def crawl_songs(keep_csv: bool = True):
             for k, v in EXAMPLE_ENTRY.items()
         })
         while True:
-            url = f'{BASE_URL}/api/song.aspx?company={COMPANY}&cusType=new&minId={min_id}&oid=&lang={lang}&board=&keyword=&singer=&sex=&Len=&songDate=null'
+            url = (f'{BASE_URL}/api/song.aspx?company={COMPANY}&cusType=new'
+                   f'&minId={min_id}&oid=&lang={lang}&board=&keyword='
+                   f'&singer=&sex=&Len=&songDate=null')
             response = client.get(url)
             if response.status_code != 200:
-                print(f'{response.status_code = }')
+                #print(f'{response.status_code = }')
+                msg = (f'{url = }\n'
+                       f'{response.status_code = }')
+                logger.warn(msg)
                 #ipdb.set_trace()
             num_gets += 1
             L = json.loads(response.content)
@@ -126,7 +146,7 @@ def save_songs_in_jsonl(songs_df: None | pd.DataFrame = None):
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         csv_paths = [DATA_DIR/f'{lang}.csv' for lang in LANGS]
         if all(p.exists() for p in csv_paths):
-            print(f'{csv_paths = }')
+            #print(f'{csv_paths = }')
             ipdb.set_trace()
             for p in csv_paths:
                 df = pd.read_csv(
@@ -139,25 +159,42 @@ def save_songs_in_jsonl(songs_df: None | pd.DataFrame = None):
                 )
         else:
             # TODO: Logging
+            msg = []
+            for lang in LANGS:
+                p = DATA_DIR/f'{lang}.csv'
+                if not p.exists():
+                    msg.append(str(p))
+            msg = f'The following paths are missing: {msg}'
+            logger.warn(msg)
             return
 
     duplicates = songs_df.duplicated()
     deducplicated_df = songs_df.loc[~duplicates]
     sorted_df = deducplicated_df.sort_values("code")
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+    json_path = ASSETS_DIR/'songs.jsonl'
     sorted_df.to_json(
-        ASSETS_DIR/'songs.jsonl',
+        json_path,
         orient="records",
         lines=True,
         force_ascii=False,
     )
     # TODO: Logging to notify users that jsonl has been saved
+    msg = f'Songs successfully saved to {json_path}'
+    logger.info(msg)
 
 
-if __name__ == "__main__":
-    #songs_df = uc.loop().run_until_complete(crawl_songs(keep_csv=False))
+def main():
+    setup_logging()
+    #logging.basicConfig(level="INFO")
+    songs_df = uc.loop().run_until_complete(crawl_songs(keep_csv=False))
     #songs_df = uc.loop().run_until_complete(crawl_songs())
     #ipdb.set_trace()
 
-    songs_df = None
+    #songs_df = None
     save_songs_in_jsonl(songs_df)
+    #pass
+
+
+if __name__ == "__main__":
+    main()
