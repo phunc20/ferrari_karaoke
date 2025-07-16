@@ -55,7 +55,7 @@ NUM_GETS_BEFORE_SLEEP_AGAIN = random.randint(10, 20)
 
 logger = logging.getLogger("hongyin")
 #logger = logging.getLogger(__name__)
-print(f'{logger.name = }')
+#print(f'{logger.name = }')
 
 
 def setup_logging():
@@ -63,6 +63,9 @@ def setup_logging():
     with open(config_file) as f:
         config = json.load(f)
 
+    #ipdb.set_trace()
+    logs_dir = Path(config["handlers"]["file_json"]["filename"]).parent
+    logs_dir.mkdir(parents=True, exist_ok=True)
     logging.config.dictConfig(config)
     queue_handler = logging.getHandlerByName("queue_handler")
     if queue_handler is not None:
@@ -108,12 +111,8 @@ async def crawl_songs(keep_csv: bool = True):
                 #ipdb.set_trace()
             num_gets += 1
             L = json.loads(response.content)
-            #print(f'{L = }')
-            #ipdb.set_trace()
             if len(L) == 0:
                 break
-            #print(L)
-            print(f'    {min_id = }')
             for new_row in L:
                 df.loc[len(df)] = new_row
             min_id = L[-1]["seq"]
@@ -123,8 +122,8 @@ async def crawl_songs(keep_csv: bool = True):
                 time.sleep(sleep_sec)
                 num_gets = 0
 
-        #print(f'{df.dtypes = }')
-        #ipdb.set_trace()
+        print(f'{df.dtypes = }')
+        ipdb.set_trace()
         if keep_csv:
             df.to_csv(DATA_DIR/f'{lang}.csv', index=False)
 
@@ -138,7 +137,7 @@ async def crawl_songs(keep_csv: bool = True):
 
 
 def save_songs_in_jsonl(songs_df: None | pd.DataFrame = None):
-    ipdb.set_trace()
+    #ipdb.set_trace()
     if songs_df is None or songs_df.empty:
         songs_df = pd.DataFrame({
             col: pd.Series(dtype="str") for col in USED_COLUMNS
@@ -147,7 +146,7 @@ def save_songs_in_jsonl(songs_df: None | pd.DataFrame = None):
         csv_paths = [DATA_DIR/f'{lang}.csv' for lang in LANGS]
         if all(p.exists() for p in csv_paths):
             #print(f'{csv_paths = }')
-            ipdb.set_trace()
+            #ipdb.set_trace()
             for p in csv_paths:
                 df = pd.read_csv(
                     p,
@@ -187,8 +186,8 @@ def save_songs_in_jsonl(songs_df: None | pd.DataFrame = None):
 def main():
     setup_logging()
     #logging.basicConfig(level="INFO")
-    songs_df = uc.loop().run_until_complete(crawl_songs(keep_csv=False))
-    #songs_df = uc.loop().run_until_complete(crawl_songs())
+    #songs_df = uc.loop().run_until_complete(crawl_songs(keep_csv=False))
+    songs_df = uc.loop().run_until_complete(crawl_songs())
     #ipdb.set_trace()
 
     #songs_df = None
