@@ -1,7 +1,17 @@
 import datetime as dt
 import json
 import logging
+from logging import _STYLES
 from typing import override
+from colorlog import ColoredFormatter
+
+LOG_COLORS = {
+    'DEBUG': 'cyan',
+    'INFO': 'green',
+    'WARNING': 'yellow',
+    'ERROR': 'red',
+    'CRITICAL': 'bold_red',
+}
 
 LOG_RECORD_BUILTIN_ATTRS = {
     "args",
@@ -36,22 +46,33 @@ class ColorFormatter(logging.Formatter):
     grey = "\x1b[38;21m"
     yellow = "\x1b[33;21m"
     red = "\x1b[31;21m"
+    blue = "\x1b[34;21m"
     bold_red = "\x1b[31;1m"
     reset = "\x1b[0m"
     format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
 
     FORMATS = {
-        logging.DEBUG: grey + format + reset,
+        logging.DEBUG: blue + format + reset,
         logging.INFO: grey + format + reset,
         logging.WARNING: yellow + format + reset,
         logging.ERROR: red + format + reset,
         logging.CRITICAL: bold_red + format + reset
     }
 
+    def __init__(self, fmt=None, datefmt=None, style='%', validate=True, *args, defaults=None):
+        super().__init__(fmt, datefmt, style, validate, *args, defaults=defaults)
+        self.arg_style = style
+        self.arg_validate = validate
+        self.arg_defaults = defaults
+
+    @override
     def format(self, record):
-        log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
-        return formatter.format(record)
+        fmt = self.FORMATS.get(record.levelno)
+        self._style = _STYLES[self.arg_style][0](fmt, defaults=self.arg_defaults)
+        if self.arg_validate:
+            self._style.validate()
+        self._fmt = self._style._fmt
+        return super().format(record)
 
 
 class JsonFormatter(logging.Formatter):

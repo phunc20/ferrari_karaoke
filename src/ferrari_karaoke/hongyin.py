@@ -89,7 +89,7 @@ async def crawl_songs(keep_csv: bool = True):
     client = httpx.Client(cookies=cookies_dict)
 
     for lang in LANGS:
-        print(f'{lang = }')
+        logger.debug(f'{lang = }')
         min_id = 0
         num_gets = 0
         df = pd.DataFrame({
@@ -102,6 +102,7 @@ async def crawl_songs(keep_csv: bool = True):
             url = (f'{BASE_URL}/api/song.aspx?company={COMPANY}&cusType=new'
                    f'&minId={min_id}&oid=&lang={lang}&board=&keyword='
                    f'&singer=&sex=&Len=&songDate=null')
+            #logger.warning(f'{url = }')
             response = client.get(url)
             if response.status_code != 200:
                 #print(f'{response.status_code = }')
@@ -123,7 +124,7 @@ async def crawl_songs(keep_csv: bool = True):
                 num_gets = 0
 
         print(f'{df.dtypes = }')
-        ipdb.set_trace()
+        #ipdb.set_trace()
         if keep_csv:
             df.to_csv(DATA_DIR/f'{lang}.csv', index=False)
 

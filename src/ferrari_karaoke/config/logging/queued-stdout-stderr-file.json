@@ -15,6 +15,17 @@
       "()": "my_logging.ColorFormatter",
       "datefmt": "%Y-%m-%dT%H:%M:%S%z"
     },
+    "colored": {
+      "()": "colorlog.ColoredFormatter",
+      "format": "%(log_color)s%(levelname)-8s%(reset)s %(blue)s%(message)s",
+      "log_colors": {
+        "DEBUG": "cyan",
+        "INFO": "green",
+        "WARNING": "yellow",
+        "ERROR": "red",
+        "CRITICAL": "bold_red"
+      }
+    },
     "json": {
       "()": "my_logging.JsonFormatter",
       "fmt_keys": {
@@ -33,21 +44,21 @@
     "stdout": {
       "class": "logging.StreamHandler",
       "level": "DEBUG",
-      "formatter": "color",
+      "formatter": "colored",
       "filters": ["keep_only_debug_and_info"],
       "stream": "ext://sys.stdout"
     },
     "stderr": {
       "class": "logging.StreamHandler",
       "level": "WARNING",
-      "formatter": "color",
+      "formatter": "colored",
       "stream": "ext://sys.stderr"
     },
     "file_json": {
       "class": "logging.handlers.RotatingFileHandler",
       "level": "DEBUG",
       "formatter": "json",
-      "filename": "logs/hongyin.log.jsonl",
+      "filename": "src/ferrari_karaoke/logs/hongyin.log.jsonl",
       "maxBytes": 2000000,
       "backupCount": 5
     },
@@ -63,7 +74,7 @@
   },
   "loggers": {
     "root": {
-      "level": "INFO",
+      "level": "DEBUG",
       "handlers": [
         "queue_handler"
       ]
